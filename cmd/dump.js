@@ -4,7 +4,7 @@
 //   node cmd/dump.js /teach/control/stream/view/id/123456
 //   node cmd/dump.js https://site.ru/teach/control/lesson/view/id/789
 //
-// Writes the rendered HTML to /tmp/getcourse-dump.html for a closer look.
+// Writes the rendered HTML to logs/getcourse-dump.html for a closer look.
 
 const fs = require("fs");
 const path = require("path");
@@ -13,7 +13,8 @@ require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const { fetch, close } = require(path.join(__dirname, "..", "scraper", "browser.js"));
 const discover = require(path.join(__dirname, "..", "scraper", "discover.js"));
 
-const OUT = "/tmp/getcourse-dump.html";
+const ROOT = path.join(__dirname, "..");
+const OUT = path.join("logs", "getcourse-dump.html");
 
 const LESSON_SCAN = /(?:\/pl)?\/teach\/control\/lesson\/view(?:\?id=|\/id\/)(\d+)/g;
 const STREAM_SCAN = /(?:\/pl)?\/teach\/control\/stream\/view(?:\?id=|\/id\/)(\d+)/g;
@@ -55,7 +56,8 @@ function uniqueIds(html, re) {
   const html = await fetch(base + target);
   await close();
 
-  fs.writeFileSync(OUT, html);
+  fs.mkdirSync(path.join(ROOT, path.dirname(OUT)), { recursive: true });
+  fs.writeFileSync(path.join(ROOT, OUT), html);
 
   console.log(`\nСтраница: ${base + target}`);
   console.log(`Размер отрисованного HTML: ${html.length} символов`);

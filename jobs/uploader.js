@@ -69,7 +69,8 @@ function humanSize(bytes) {
 function localRoot() {
   const root = process.env.SCRAPPER_DOWNLOAD_PATH;
   if (!root) throw new Error("SCRAPPER_DOWNLOAD_PATH не задан");
-  return root;
+  // Must match scraper/pipeline.js: relative paths count from the project root.
+  return path.resolve(__dirname, "..", root);
 }
 
 function walk(dir, found = []) {

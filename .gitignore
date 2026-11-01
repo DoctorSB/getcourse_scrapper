@@ -1,11 +1,33 @@
-.idea/
-.DS_Store
-node_modules/
-logs/*
-!logs/.gitignore
-scraper.log
+# Секреты: доступ к аккаунту getcourse и Яндекс Диску
 .env
-download/
-auth-state.json
-config/trainings/*/trainings.json.bak-*
-yadisk-auth.json
+.env.*
+!.env.sample
+/auth-state.json
+/yadisk-auth.json
+
+# Скачанные видео и незавершённые загрузки
+/download/
+*.mp4
+*.part
+*.ytdl
+
+# Логи и блокировка выгрузки
+/logs/*
+!/logs/.gitignore
+*.log
+
+# Бэкапы списков уроков
+/config/trainings/*/trainings.json.bak-*
+
+# Зависимости
+node_modules/
+
+# Служебный файл теста выгрузки
+/jobs/stub-hook.js
+
+# Система и редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

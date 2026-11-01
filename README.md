@@ -143,7 +143,7 @@ YADISK_BASE_PATH=disk:/getcourse
 |---|---|---|
 | `SCRAPPER_BASE_URL` | адрес сайта без слэша на конце | — |
 | `SCRAPPER_TRAINING_CONFIG_DIR` | папка конфига, удобно указать домен | — |
-| `SCRAPPER_DOWNLOAD_PATH` | куда складывать видео | — |
+| `SCRAPPER_DOWNLOAD_PATH` | куда складывать видео, относительно корня проекта | — |
 | `SCRAPPER_AUTH_COOKIE_NAME`, `_VALUE`, `_DOMAIN` | вход по cookie вместо `auth-state.json` | — |
 | `SCRAPPER_CONCURRENCY` | уроков одновременно | `3` |
 | `SCRAPPER_DOWNLOAD_CONCURRENCY` | видео одновременно | `2` |
@@ -165,7 +165,7 @@ node cmd/dump.js https://ваш-сайт.ru/teach/control/lesson/view/id/123
 ```
 
 Команда покажет признаки страницы входа, найденные уроки и следы плеера, а HTML
-сохранит в `/tmp/getcourse-dump.html`. Если плеер новый, добавьте шаблон в
+сохранит в `logs/getcourse-dump.html`. Если плеер новый, добавьте шаблон в
 `scrapper.parser.patterns` в `config/config.json`.
 
 **Файл битый.** `yt-dlp` склеивает видео через `ffmpeg` — проверьте `ffmpeg -version`.

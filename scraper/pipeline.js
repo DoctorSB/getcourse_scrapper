@@ -86,7 +86,8 @@ exports.run = async function ({ trainings, onEvent, baseURL, downloadPath } = {}
 
   let root = downloadPath || process.env.SCRAPPER_DOWNLOAD_PATH;
   if (!root) throw new Error("SCRAPPER_DOWNLOAD_PATH is not set");
-  root = root.endsWith("/") ? root : root + "/";
+  // Relative paths count from the project root, whatever directory we run from.
+  root = path.resolve(__dirname, "..", root) + path.sep;
 
   const concurrency = Number(process.env.SCRAPPER_CONCURRENCY) || 3;
 
