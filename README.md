@@ -187,12 +187,7 @@ cmd/         команды терминала: вход, поиск уроко�
 config/      настройки и списки уроков по сайтам
 lib/         MD5 для отсеивания повторяющихся видео
 main.js      CLI-запуск конвейера
-rust-scraper/  отдельный скрапер на Rust, см. ниже
 ```
-
-`rust-scraper/` — код [gen1us2k/getcourse_scraper](https://github.com/gen1us2k/getcourse_scraper)
-со своей лицензией и [README](rust-scraper/README.md). Он не связан с основным
-приложением, собирается отдельно через `cargo` и в Docker-образ не входит.
 
 ## Безопасность
 
