@@ -1,0 +1,11 @@
+.idea/
+.DS_Store
+node_modules/
+logs/*
+!logs/.gitignore
+scraper.log
+.env
+download/
+auth-state.json
+config/trainings/*/trainings.json.bak-*
+yadisk-auth.json

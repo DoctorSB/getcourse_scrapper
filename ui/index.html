@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GetCourse Scraper</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --ink: #14171a; --muted: #6b7480;
+    --line: #e3e6ea; --accent: #2f6feb; --ok: #1a7f46; --warn: #a8650a;
+    --err: #c0372b; --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --panel: #1d2127; --ink: #e8eaed; --muted: #959ca6;
+      --line: #2c323a; --accent: #5b8cf5; --ok: #4cc27f; --warn: #d79b3c;
+      --err: #e8705f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 20px 64px;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+  }
+  .panel h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0 0 14px; font-weight: 600;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button {
+    font: inherit; font-weight: 500; padding: 8px 15px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: var(--err); border-color: var(--err); color: #fff; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  input[type=text] {
+    font: inherit; padding: 8px 11px; border-radius: 8px; flex: 1; min-width: 240px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; overflow-wrap: anywhere; }
+  .pill {
+    display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px;
+    border-radius: 999px; border: 1px solid currentColor;
+  }
+  .pill.ok { color: var(--ok); }
+  .pill.bad { color: var(--err); }
+  .hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .tree { max-height: 400px; overflow-y: auto; margin: 0 -4px; }
+  .course { border-bottom: 1px solid var(--line); padding: 9px 4px; }
+  .course:last-child { border-bottom: 0; }
+  .course > label { display: flex; gap: 9px; align-items: flex-start; cursor: pointer; font-weight: 500; }
+  .course .count { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .lessons { margin: 7px 0 2px 27px; display: none; flex-wrap: wrap; gap: 4px 16px; }
+  .lessons.open { display: flex; }
+  .lessons label {
+    display: flex; gap: 7px; align-items: center; font-size: 12.5px;
+    color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums;
+  }
+  .toggle {
+    background: none; border: 0; color: var(--accent); font-size: 12.5px;
+    padding: 2px 0 0 27px; cursor: pointer; font-weight: 500;
+  }
+  .bar { height: 7px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s; }
+  .overall { margin-bottom: 14px; }
+  .overall .label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .dl { border-top: 1px solid var(--line); padding: 9px 0; font-size: 13.5px; }
+  .dl:first-child { border-top: 0; }
+  .dl .top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+  .dl .name { overflow-wrap: anywhere; }
+  .dl .meta { color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dl.done .meta { color: var(--ok); }
+  .dl.err .meta { color: var(--err); }
+  pre.log {
+    margin: 0; max-height: 240px; overflow: auto; font-size: 12px; line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  details.logbox summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .note { font-size: 13px; padding: 10px 13px; border-radius: 8px; margin-bottom: 14px; }
+  .note.warn { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); }
+  .note.err { background: color-mix(in srgb, var(--err) 12%, transparent); color: var(--err); }
+  .empty { color: var(--muted); font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>GetCourse Scraper</h1>
+  <div class="sub" id="site">загрузка…</div>
+
+  <div id="alerts"></div>
+
+  <div class="panel">
+    <h2>Состояние</h2>
+    <dl class="facts">
+      <dt>Сайт</dt><dd id="f-site">—</dd>
+      <dt>Папка загрузки</dt><dd id="f-path">—</dd>
+      <dt>Вход</dt><dd id="f-auth">—</dd>
+      <dt>Инструменты</dt><dd id="f-tools">—</dd>
+    </dl>
+  </div>
+
+  <div class="panel">
+    <h2>1. Вход в аккаунт</h2>
+    <div class="row">
+      <button id="b-login" class="primary">Открыть окно входа</button>
+      <button id="b-login-save" disabled>Я вошёл — сохранить сессию</button>
+      <button id="b-login-cancel" disabled>Отмена</button>
+    </div>
+    <p class="hint" id="login-hint">
+      Откроется обычное окно браузера. Входите как всегда — капча, СМС и 2FA работают.
+      Откройте любой урок, убедитесь что доступ есть, и нажмите «сохранить сессию».
+      Сессии GetCourse живут недолго: если уроки перестали находиться — войдите заново.
+    </p>
+
+    <details id="cookie-login" style="margin-top:12px">
+      <summary style="cursor:pointer;color:var(--muted);font-size:13px">Вход по cookie</summary>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="ck-name" placeholder="имя cookie, обычно PHPSESSID5" style="min-width:200px">
+        <input type="password" id="ck-value" placeholder="значение cookie" style="min-width:200px">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="ck-domain" placeholder="домен (можно не заполнять)">
+        <button id="b-ck-save">Сохранить сессию</button>
+      </div>
+      <p class="hint">
+        Войдите на сайт в своём обычном браузере, откройте инструменты разработчика
+        → Application → Cookies, найдите cookie сессии и скопируйте имя и значение сюда.
+        Это единственный способ входа, когда окно браузера открыть нельзя — например, в Docker.
+      </p>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>2. Какие курсы качать</h2>
+    <div class="row">
+      <button id="b-discover" class="primary">Найти курсы автоматически</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input type="text" id="manual-url" placeholder="…или вставьте адрес курса: /teach/control/stream/view/id/123456">
+      <button id="b-discover-url">Добавить</button>
+    </div>
+    <p class="hint">Прошлый список сохраняется в резервную копию перед перезаписью.</p>
+  </div>
+
+  <div class="panel">
+    <h2>3. Уроки</h2>
+    <div id="tree" class="tree"><div class="empty">Список пуст — найдите курсы на шаге 2.</div></div>
+    <div class="row" style="margin-top:14px; justify-content:space-between">
+      <div class="row">
+        <button id="b-all">Выбрать всё</button>
+        <button id="b-none">Снять всё</button>
+      </div>
+      <div class="meta" id="selcount" style="color:var(--muted);font-size:13px"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>4. Загрузка</h2>
+    <div class="row">
+      <button id="b-start" class="primary">Скачать выбранное</button>
+      <button id="b-stop" class="danger" disabled>Остановить</button>
+    </div>
+
+    <div id="progress" style="margin-top:16px; display:none">
+      <div class="overall">
+        <div class="label"><span>Уроки просканированы</span><span id="lesson-count">0 / 0</span></div>
+        <div class="bar"><i id="lesson-bar"></i></div>
+      </div>
+      <div id="downloads"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>5. Выгрузка на Яндекс Диск</h2>
+
+    <div id="ya-disconnected">
+      <p class="hint" style="margin-top:0">
+        Выгруженные видео удаляются с ноутбука — локально они не копятся.
+        Удаление происходит только после проверки, что файл лёг на Диск и совпал
+        по размеру. Задача работает, пока запущен этот сервис.
+      </p>
+      <div class="row" style="margin-top:12px">
+        <input type="password" id="ya-token" placeholder="OAuth-токен Яндекс Диска" autocomplete="off">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="ya-path" placeholder="disk:/getcourse" value="disk:/getcourse">
+        <button id="b-ya-connect" class="primary">Подключить</button>
+      </div>
+      <p class="hint">
+        Токен получается на <a href="https://oauth.yandex.ru/client/new/" target="_blank" rel="noreferrer noopener">oauth.yandex.ru</a>
+        с доступами <code>cloud_api:disk.read / write / info</code> — подробности в README.
+        Он даёт полный доступ к вашему Диску: хранится локально с правами 600, в журнал не пишется.
+      </p>
+    </div>
+
+    <div id="ya-connected" style="display:none">
+      <dl class="facts">
+        <dt>Состояние</dt><dd id="ya-state">—</dd>
+        <dt>Папка на Диске</dt><dd id="ya-path-shown">—</dd>
+        <dt>Свободно на Диске</dt><dd id="ya-free">—</dd>
+        <dt>За эту сессию</dt><dd id="ya-session">—</dd>
+      </dl>
+
+      <div id="ya-current" style="margin-top:14px; display:none">
+        <div class="label" style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span id="ya-current-name"></span><span id="ya-current-pct"></span>
+        </div>
+        <div class="bar"><i id="ya-current-bar"></i></div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button id="b-ya-now">Выгрузить сейчас</button>
+        <button id="b-ya-toggle">Приостановить</button>
+        <button id="b-ya-disconnect">Отключить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <details class="logbox">
+      <summary>Журнал</summary>
+      <pre class="log" id="log"></pre>
+    </details>
+  </div>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+let state = {};
+let trainings = [];
+let selection = new Map(); // course index -> Set of selected lesson paths
+const downloads = new Map();
+
+// ------------------------------------------------------------------ helpers
+
+function logLine(text) {
+  const el = $("log");
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+  el.textContent += text + "\n";
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+function alertBox(message, kind = "err") {
+  const div = document.createElement("div");
+  div.className = "note " + kind;
+  div.textContent = message;
+  $("alerts").appendChild(div);
+  setTimeout(() => div.remove(), 9000);
+}
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function lessonId(path) {
+  const m = /(?:id[\/=])(\d+)/.exec(path);
+  return m ? m[1] : path;
+}
+
+// ------------------------------------------------------------------- render
+
+function renderStatus(s) {
+  state = s;
+
+  $("site").textContent = s.baseURL ? s.baseURL : "SCRAPPER_BASE_URL не задан в .env";
+  $("f-site").textContent = s.baseURL || "—";
+  $("f-path").textContent = s.downloadPath || "—";
+
+  $("f-auth").innerHTML = s.loggedIn
+    ? '<span class="pill ok">сессия сохранена</span>'
+    : '<span class="pill bad">не выполнен</span>';
+
+  $("f-tools").innerHTML =
+    (s.ffmpeg ? '<span class="pill ok">ffmpeg</span>' : '<span class="pill bad">ffmpeg</span>') +
+    " " +
+    (s.ytdlp ? '<span class="pill ok">yt-dlp</span>' : '<span class="pill bad">yt-dlp</span>');
+
+  // In a container there is no display, so the cookie path is the only way in.
+  if (s.headedLogin === false) {
+    $("b-login").style.display = "none";
+    $("b-login-save").style.display = "none";
+    $("b-login-cancel").style.display = "none";
+    $("login-hint").textContent =
+      "Сервис работает в контейнере — окно браузера открыть нельзя. Войдите по cookie:";
+    $("cookie-login").open = true;
+  }
+
+  $("b-login").disabled = s.loginOpen || s.running;
+  $("b-login-save").disabled = !s.loginOpen;
+  $("b-login-cancel").disabled = !s.loginOpen;
+  $("b-discover").disabled = s.running || s.discovering;
+  $("b-discover-url").disabled = s.running || s.discovering;
+  $("b-start").disabled = s.running;
+  $("b-stop").disabled = !s.running;
+
+  renderYadisk(s.yadisk || {});
+
+  // Status is polled, so each warning is shown once rather than every tick.
+  warnOnce("trainings:" + s.trainingsError, s.trainingsError, "err");
+  warnOnce(
+    "tools",
+    !s.ffmpeg || !s.ytdlp
+      ? "Не найдены ffmpeg и/или yt-dlp — установите: brew install ffmpeg yt-dlp"
+      : null,
+    "warn"
+  );
+}
+
+function humanSize(bytes) {
+  const units = ["Б", "КБ", "МБ", "ГБ", "ТБ"];
+  let n = bytes || 0, i = 0;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return n.toFixed(n >= 10 || i === 0 ? 0 : 1) + " " + units[i];
+}
+
+let yadiskFreeCache = null;
+
+function renderYadisk(ya) {
+  const connected = Boolean(ya.connected);
+  $("ya-disconnected").style.display = connected ? "none" : "";
+  $("ya-connected").style.display = connected ? "" : "none";
+  if (!connected) return;
+
+  $("ya-state").innerHTML = ya.watching
+    ? '<span class="pill ok">следит за папкой</span>'
+    : '<span class="pill bad">приостановлена</span>';
+
+  $("ya-path-shown").textContent = ya.basePath + (ya.fromEnv ? "  (токен из .env)" : "");
+  $("ya-free").textContent = yadiskFreeCache || "—";
+  $("ya-session").textContent =
+    `выгружено ${ya.uploaded || 0}, освобождено ${humanSize(ya.freed)}` +
+    (ya.failed ? `, ошибок ${ya.failed}` : "");
+
+  $("b-ya-toggle").textContent = ya.watching ? "Приостановить" : "Возобновить";
+  $("b-ya-toggle").dataset.enable = ya.watching ? "false" : "true";
+
+  const cur = ya.current;
+  $("ya-current").style.display = cur ? "" : "none";
+  if (cur) {
+    $("ya-current-name").textContent = cur.name;
+    $("ya-current-pct").textContent = (cur.percent || 0) + "%";
+    $("ya-current-bar").style.width = (cur.percent || 0) + "%";
+  }
+}
+
+const warned = new Set();
+function warnOnce(key, message, kind) {
+  if (!message || warned.has(key)) return;
+  warned.add(key);
+  alertBox(message, kind);
+}
+
+function renderTree() {
+  const box = $("tree");
+  box.innerHTML = "";
+
+  if (!trainings.length) {
+    box.innerHTML = '<div class="empty">Список пуст — найдите курсы на шаге 2.</div>';
+    updateCount();
+    return;
+  }
+
+  trainings.forEach((training, ci) => {
+    const chosen = selection.get(ci) || new Set();
+
+    const course = document.createElement("div");
+    course.className = "course";
+
+    const head = document.createElement("label");
+    const box1 = document.createElement("input");
+    box1.type = "checkbox";
+    box1.checked = chosen.size === training.paths.length;
+    box1.indeterminate = chosen.size > 0 && chosen.size < training.paths.length;
+    box1.onchange = () => {
+      selection.set(ci, box1.checked ? new Set(training.paths) : new Set());
+      renderTree();
+    };
+    const text = document.createElement("span");
+    text.innerHTML =
+      escapeHtml(training.title) +
+      ` <span class="count">${chosen.size} из ${training.paths.length}</span>`;
+    head.append(box1, text);
+    course.append(head);
+
+    const lessons = document.createElement("div");
+    lessons.className = "lessons";
+    training.paths.forEach((p) => {
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = chosen.has(p);
+      cb.onchange = () => {
+        const set = selection.get(ci) || new Set();
+        cb.checked ? set.add(p) : set.delete(p);
+        selection.set(ci, set);
+        renderTree();
+      };
+      label.append(cb, document.createTextNode("№" + lessonId(p)));
+      lessons.append(label);
+    });
+
+    const toggle = document.createElement("button");
+    toggle.className = "toggle";
+    toggle.textContent = "показать уроки";
+    toggle.onclick = () => {
+      const open = lessons.classList.toggle("open");
+      toggle.textContent = open ? "скрыть уроки" : "показать уроки";
+    };
+
+    course.append(toggle, lessons);
+    box.append(course);
+  });
+
+  updateCount();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
+}
+
+function updateCount() {
+  let n = 0;
+  for (const set of selection.values()) n += set.size;
+  $("selcount").textContent = n ? `выбрано уроков: ${n}` : "ничего не выбрано";
+}
+
+function renderDownload(ev) {
+  let row = downloads.get(ev.id);
+
+  if (!row) {
+    row = document.createElement("div");
+    row.className = "dl";
+    row.innerHTML =
+      '<div class="top"><span class="name"></span><span class="meta"></span></div>' +
+      '<div class="bar"><i></i></div>';
+    downloads.set(ev.id, row);
+    $("downloads").append(row);
+  }
+
+  row.querySelector(".name").textContent = ev.title || ev.path || "видео";
+  const meta = row.querySelector(".meta");
+  const bar = row.querySelector(".bar > i");
+
+  if (ev.type === "download-queued") meta.textContent = "в очереди";
+  if (ev.type === "download-start") meta.textContent = "начато";
+  if (ev.type === "download-progress") {
+    bar.style.width = ev.percent + "%";
+    meta.textContent =
+      ev.percent + "%" + (ev.speed ? " · " + ev.speed : "") + (ev.eta ? " · ETA " + ev.eta : "");
+  }
+  if (ev.type === "download-done") {
+    row.classList.add("done");
+    bar.style.width = "100%";
+    meta.textContent = "готово";
+  }
+  if (ev.type === "download-error") {
+    row.classList.add("err");
+    meta.textContent = ev.error || "ошибка";
+  }
+  if (ev.type === "download-cancelled") {
+    meta.textContent = "отменено";
+  }
+}
+
+// ------------------------------------------------------------------- events
+
+const es = new EventSource("/api/events");
+
+es.onmessage = (msg) => {
+  const ev = JSON.parse(msg.data);
+
+  switch (ev.type) {
+    case "discover-log":
+      logLine(ev.line);
+      break;
+
+    case "discover-done":
+      trainings = ev.trainings;
+      selection = new Map(trainings.map((t, i) => [i, new Set(t.paths)]));
+      renderTree();
+      logLine(`Найдено курсов: ${trainings.length}`);
+      if (ev.backup) logLine("Прошлый список сохранён в резервную копию.");
+      refresh();
+      break;
+
+    case "start":
+      $("progress").style.display = "block";
+      $("downloads").innerHTML = "";
+      downloads.clear();
+      $("lesson-count").textContent = `0 / ${ev.lessons}`;
+      $("lesson-bar").style.width = "0";
+      logLine(`Старт: курсов ${ev.trainings}, уроков ${ev.lessons}`);
+      break;
+
+    case "training-start":
+      logLine(`\n[${ev.index + 1}/${ev.total}] ${ev.title}`);
+      break;
+
+    case "lesson-progress":
+      $("lesson-count").textContent = `${ev.done} / ${ev.total}`;
+      $("lesson-bar").style.width = (ev.total ? (ev.done / ev.total) * 100 : 0) + "%";
+      break;
+
+    case "lesson-done":
+      logLine(`  ${ev.title} — видео: ${ev.videos}`);
+      break;
+
+    case "lesson-novideo":
+      logLine(`  видео не найдено: ${ev.url}`);
+      break;
+
+    case "lesson-retry":
+      logLine(`  повтор ${ev.attempt}/${ev.max}: ${ev.url}`);
+      break;
+
+    case "lesson-error":
+      logLine(`  ошибка: ${ev.url} — ${ev.error}`);
+      break;
+
+    case "download-queued":
+    case "download-start":
+    case "download-progress":
+    case "download-done":
+    case "download-error":
+    case "download-cancelled":
+      renderDownload(ev);
+      break;
+
+    case "scraping-done":
+      logLine(`\nСканирование закончено, загрузок в очереди: ${ev.downloads}`);
+      break;
+
+    case "done":
+      logLine(ev.stopped ? "Остановлено." : "Все загрузки завершены.");
+      break;
+
+    case "fatal":
+      alertBox(ev.error);
+      logLine("СБОЙ: " + ev.error);
+      break;
+
+    case "login-closed":
+      logLine("Окно входа закрыто.");
+      refresh();
+      break;
+
+    case "idle":
+      refresh();
+      break;
+
+    case "upload-pass-start":
+      if (ev.ready) logLine(`\nВыгрузка: готовых файлов ${ev.ready} из ${ev.total}`);
+      break;
+
+    case "upload-start":
+      logLine(`  ↑ ${ev.name} (${humanSize(ev.size)})`);
+      break;
+
+    case "upload-progress":
+      if (ev.percent % 20 === 0) logLine(`    ${ev.percent}%`);
+      break;
+
+    case "upload-done":
+      logLine(`  ✓ ${ev.name} — выгружено, локальный удалён${ev.speed ? " (" + ev.speed + ")" : ""}`);
+      refresh();
+      break;
+
+    case "upload-skip":
+      logLine(`  — ${ev.name}: ${ev.reason}`);
+      break;
+
+    case "upload-error":
+      logLine(`  ✗ ${ev.name}: ${ev.error}`);
+      alertBox("Выгрузка: " + ev.error);
+      break;
+
+    case "upload-pass-done":
+      if (ev.uploaded || ev.failed) {
+        logLine(`Выгрузка закончена: ${ev.uploaded} шт., освобождено ${ev.freedHuman}`);
+      }
+      refresh();
+      break;
+
+    case "upload-watcher":
+      logLine(ev.running ? "Выгрузка: слежение включено." : "Выгрузка: слежение приостановлено.");
+      break;
+
+    case "log":
+      if (ev.line) logLine("  " + ev.line);
+      break;
+  }
+};
+
+es.onerror = () => logLine("Соединение с сервером потеряно — перезапустите ui/server.js.");
+
+// ------------------------------------------------------------------ actions
+
+async function guard(fn) {
+  try {
+    await fn();
+  } catch (err) {
+    alertBox(err.message);
+  }
+  refresh();
+}
+
+$("b-login").onclick = () => guard(() => api("/api/login/start", {}));
+$("b-login-save").onclick = () =>
+  guard(async () => {
+    await api("/api/login/finish", {});
+    logLine("Сессия сохранена.");
+  });
+$("b-login-cancel").onclick = () => guard(() => api("/api/login/cancel", {}));
+
+$("b-ck-save").onclick = () =>
+  guard(async () => {
+    const r = await api("/api/login/cookie", {
+      name: $("ck-name").value.trim(),
+      value: $("ck-value").value.trim(),
+      domain: $("ck-domain").value.trim(),
+    });
+    $("ck-value").value = "";
+    logLine(`Сессия сохранена из cookie для ${r.domain}.`);
+  });
+
+$("b-discover").onclick = () => guard(() => api("/api/discover", {}));
+$("b-discover-url").onclick = () =>
+  guard(async () => {
+    const value = $("manual-url").value.trim();
+    if (!value) throw new Error("Вставьте адрес курса");
+    await api("/api/discover", { urls: [value] });
+    $("manual-url").value = "";
+  });
+
+$("b-all").onclick = () => {
+  selection = new Map(trainings.map((t, i) => [i, new Set(t.paths)]));
+  renderTree();
+};
+$("b-none").onclick = () => {
+  selection = new Map();
+  renderTree();
+};
+
+$("b-start").onclick = () =>
+  guard(() => {
+    const picked = trainings
+      .map((t, i) => ({ title: t.title, paths: t.paths.filter((p) => (selection.get(i) || new Set()).has(p)) }))
+      .filter((t) => t.paths.length);
+    if (!picked.length) throw new Error("Сначала выберите уроки");
+    return api("/api/download", { trainings: picked });
+  });
+
+$("b-stop").onclick = () => guard(() => api("/api/stop", {}));
+
+$("b-ya-connect").onclick = () =>
+  guard(async () => {
+    const token = $("ya-token").value.trim();
+    const basePath = $("ya-path").value.trim();
+    if (!token) throw new Error("Вставьте токен");
+
+    const r = await api("/api/yadisk/connect", { token, basePath });
+    $("ya-token").value = "";
+    yadiskFreeCache = `${r.free} из ${r.total}`;
+    logLine(`Яндекс Диск подключён. Свободно ${r.free} из ${r.total}.`);
+  });
+
+$("b-ya-disconnect").onclick = () =>
+  guard(async () => {
+    const r = await api("/api/yadisk/disconnect", {});
+    yadiskFreeCache = null;
+    logLine("Яндекс Диск отключён." + (r.note ? " " + r.note : ""));
+  });
+
+$("b-ya-now").onclick = () => guard(() => api("/api/yadisk/upload-now", {}));
+
+$("b-ya-toggle").onclick = () =>
+  guard(() =>
+    api("/api/yadisk/watch", { enabled: $("b-ya-toggle").dataset.enable === "true" })
+  );
+
+// Disk quota is a network call, so it is refreshed on its own slower schedule.
+async function refreshYadiskQuota() {
+  try {
+    const info = await api("/api/yadisk/info");
+    yadiskFreeCache = info.connected ? `${info.freeHuman} из ${info.totalHuman}` : null;
+    if (info.connected) $("ya-free").textContent = yadiskFreeCache;
+  } catch {
+    // Quota is informational; failures must not disturb the page.
+  }
+}
+
+// -------------------------------------------------------------------- start
+
+async function refresh() {
+  try {
+    const s = await api("/api/status");
+    renderStatus(s);
+    if (s.trainings && !trainings.length) {
+      trainings = s.trainings;
+      selection = new Map(trainings.map((t, i) => [i, new Set(t.paths)]));
+      renderTree();
+    }
+  } catch (err) {
+    alertBox("Сервер не отвечает: " + err.message);
+  }
+}
+
+refresh();
+refreshYadiskQuota();
+setInterval(refresh, 10000);
+setInterval(refreshYadiskQuota, 120000);
+</script>
+</body>
+</html>

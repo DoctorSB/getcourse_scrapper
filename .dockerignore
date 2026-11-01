@@ -1,0 +1,11 @@
+node_modules
+download
+logs
+.git
+.env
+auth-state.json
+yadisk-auth.json
+*.log
+docker-compose*.yml
+Dockerfile
+rust-scraper
